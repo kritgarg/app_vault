@@ -14,8 +14,8 @@ import { useCards } from "../hooks/useCards";
 export default function DetailsScreen({ navigation }) {
   const { data: cards, isLoading, error } = useCards();
 
-  // Other categories for future expansion
   const categories = [
+    { id: "cards", title: "💳 Cards", description: "Credit and debit cards" },
     { id: "passwords", title: "🔑 Passwords", description: "Credentials for websites and apps" },
     { id: "documents", title: "📄 Documents", description: "Passports, IDs, and driver licenses" },
     { id: "bank", title: "🏦 Bank Accounts", description: "Routing and account details" },
@@ -94,13 +94,6 @@ export default function DetailsScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Quick Add CTA Button */}
-      <TouchableOpacity
-        style={styles.quickAddCTA}
-        onPress={() => navigation.navigate("AddCard")}
-      >
-        <Text style={styles.quickAddCTAText}>💳 Quick Add Card</Text>
-      </TouchableOpacity>
 
       {/* Recently Added Section */}
       {!isLoading && recentCards.length > 0 && (
@@ -122,30 +115,6 @@ export default function DetailsScreen({ navigation }) {
         </View>
       )}
 
-      {/* Cards by Bank Breakdown */}
-      {!isLoading && totalCards > 0 && (
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Cards by Bank</Text>
-          <View style={styles.breakdownCard}>
-            {Object.entries(bankBreakdown).map(([bank, count], index, arr) => (
-              <View key={bank}>
-                <TouchableOpacity
-                  style={styles.breakdownRow}
-                  onPress={() => navigation.navigate("CardsList")}
-                >
-                  <Text style={styles.breakdownBankName}>🏦 {bank}</Text>
-                  <View style={styles.countBadge}>
-                    <Text style={styles.countBadgeText}>
-                      {count} {count === 1 ? "card" : "cards"}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-                {index < arr.length - 1 && <View style={styles.innerDivider} />}
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
 
       {/* Other Vault Categories Section */}
       <View style={styles.sectionContainer}>
@@ -155,7 +124,13 @@ export default function DetailsScreen({ navigation }) {
             <TouchableOpacity
               key={category.id}
               style={styles.categoryCard}
-              onPress={() => console.log(`Selected category: ${category.id}`)}
+              onPress={() => {
+                if (category.id === "cards") {
+                  navigation.navigate("CardsList");
+                } else {
+                  console.log(`Selected category: ${category.id}`);
+                }
+              }}
             >
               <View>
                 <Text style={styles.categoryTitle}>{category.title}</Text>

@@ -17,6 +17,7 @@ export default function CardsListScreen({ navigation }) {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [collapsedBanks, setCollapsedBanks] = useState({});
+  const [cardTypeFilter, setCardTypeFilter] = useState("All");
 
   // Toggles the collapse state of a bank group
   const toggleSection = (bankName) => {
@@ -26,21 +27,30 @@ export default function CardsListScreen({ navigation }) {
     }));
   };
 
-  // Filter cards based on search query
+  // Filter cards based on search query and type
   const getFilteredCards = () => {
     if (!cards) return [];
     
-    const query = searchQuery.toLowerCase().trim();
-    if (!query) return cards;
+    let filtered = cards;
 
-    return cards.filter((card) => {
-      return (
-        (card.name || "").toLowerCase().includes(query) ||
-        (card.bank || "").toLowerCase().includes(query) ||
-        (card.bankName || "").toLowerCase().includes(query) ||
-        (card.network || "").toLowerCase().includes(query)
-      );
-    });
+    if (cardTypeFilter !== "All") {
+      filtered = filtered.filter((card) => {
+        const type = card.cardType || "Credit"; // Default if null
+        return type.toLowerCase() === cardTypeFilter.toLowerCase();
+      });
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    if (query) {
+      filtered = filtered.filter((card) => {
+        return (
+          (card.name || "").toLowerCase().includes(query) ||
+          (card.bank || "").toLowerCase().includes(query) // Use user-entered bank
+        );
+      });
+    }
+    
+    return filtered;
   };
 
   // Groups and maps filtered cards into SectionList compatible structures
@@ -48,7 +58,7 @@ export default function CardsListScreen({ navigation }) {
     const filtered = getFilteredCards();
     
     const groups = filtered.reduce((acc, card) => {
-      const key = card.bankName || card.bank || "Other Banks";
+      const key = card.bank || "Other Banks"; // Use user-entered bank
       if (!acc[key]) {
         acc[key] = [];
       }
@@ -97,24 +107,31 @@ export default function CardsListScreen({ navigation }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Your Vault</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate("AddCard")}
-        >
-          <Text style={styles.addButtonText}>+ Add Card</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Premium Search Input */}
       <TextInput
         style={styles.searchInput}
-        placeholder="Search by name, bank, or network..."
+        placeholder="Search by name or bank..."
         placeholderTextColor="#5b5b66"
         value={searchQuery}
         onChangeText={setSearchQuery}
         clearButtonMode="while-editing"
         autoCapitalize="none"
       />
+
+      {/* Type Filter */}
+      <View style={styles.filterContainer}>
+        {["All", "Credit", "Debit"].map((type) => (
+          <TouchableOpacity
+            key={type}
+            style={[styles.filterButton, cardTypeFilter === type && styles.filterButtonActive]}
+            onPress={() => setCardTypeFilter(type)}
+          >
+            <Text style={[styles.filterText, cardTypeFilter === type && styles.filterTextActive]}>{type}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {isLoading ? (
         <ActivityIndicator size="large" color="#00b37e" style={styles.loader} />
@@ -159,6 +176,15 @@ export default function CardsListScreen({ navigation }) {
           stickySectionHeadersEnabled={false}
         />
       )}
+
+      {/* Floating Action Button for Adding a Card */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate("AddCard")}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -181,16 +207,33 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#ffffff",
   },
-  addButton: {
+  fab: {
+    position: "absolute",
+    bottom: 30,
+    right: 24,
     backgroundColor: "#00b37e",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#00b37e",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
-  addButtonText: {
+  fabText: {
     color: "#ffffff",
-    fontWeight: "bold",
-    fontSize: 14,
+    fontSize: 32,
+    fontWeight: "300",
+    marginTop: Platform.OS === "ios" ? -2 : 0, // Visual center alignment
   },
   searchInput: {
     backgroundColor: "#1c1c21",
@@ -202,6 +245,30 @@ const styles = StyleSheet.create({
     borderColor: "#29292e",
     fontSize: 15,
     marginBottom: 16,
+  },
+  filterContainer: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 16,
+  },
+  filterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#1c1c21",
+    borderWidth: 1,
+    borderColor: "#29292e",
+  },
+  filterButtonActive: {
+    backgroundColor: "#00b37e",
+    borderColor: "#00b37e",
+  },
+  filterText: {
+    color: "#8d8d99",
+    fontWeight: "bold",
+  },
+  filterTextActive: {
+    color: "#ffffff",
   },
   loader: {
     flex: 1,
