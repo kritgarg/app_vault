@@ -15,8 +15,13 @@ export const useAppStateAutoLock = () => {
         appState.current === "active" &&
         (nextAppState === "background" || nextAppState === "inactive")
       ) {
-        console.log(`AppState transition: active -> ${nextAppState}. Auto locking vault.`);
-        lockVault();
+        const { isPickingFile, isScanningCard } = useVaultStore.getState();
+        if (!isPickingFile && !isScanningCard) {
+          console.log(`AppState transition: active -> ${nextAppState}. Auto locking vault.`);
+          lockVault();
+        } else {
+          console.log(`AppState transition: active -> ${nextAppState}. Ignored lock due to native picker/scanner.`);
+        }
       }
       appState.current = nextAppState;
     });

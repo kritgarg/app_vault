@@ -10,17 +10,35 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Modal
 } from "react-native";
 import { useCreateCard } from "../hooks/useCreateCard";
 import { useBinLookup } from "../hooks/useBinLookup";
+import { useVaultStore } from "../store/useVaultStore";
+import CardScanner from "../components/CardScanner";
 
 export default function AddCardScreen({ navigation }) {
+  const [isScannerVisible, setIsScannerVisible] = useState(false);
+  const setIsScanningCard = useVaultStore((s) => s.setIsScanningCard);
+
+  const openScanner = () => {
+    setIsScanningCard(true);
+    setIsScannerVisible(true);
+  };
+
+  const closeScanner = () => {
+    setIsScannerVisible(false);
+    setIsScanningCard(false);
+  };
   const [name, setName] = useState("");
   const [bank, setBank] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvv, setCvv] = useState("");
   const [notes, setNotes] = useState("");
+  const [category, setCategory] = useState("Personal");
+
+  const CATEGORIES = ["Personal", "Business", "Family", "Other"];
   
   // New detected metadata properties
   const [bankName, setBankName] = useState("");
@@ -59,6 +77,7 @@ export default function AddCardScreen({ navigation }) {
         network: network || "Unknown",
         cardType: cardType || "Credit",
         notes: notes || null,
+        category,
       },
       {
         onSuccess: () => {
@@ -83,6 +102,10 @@ export default function AddCardScreen({ navigation }) {
           <Text style={styles.subtitle}>Enter credit or debit card details</Text>
         </View>
 
+        <TouchableOpacity style={styles.scanButton} onPress={openScanner}>
+          <Text style={styles.scanButtonText}>📷 Scan Card with Camera</Text>
+        </TouchableOpacity>
+
         <View style={styles.form}>
           <Text style={styles.label}>Card Name</Text>
           <TextInput
@@ -93,6 +116,21 @@ export default function AddCardScreen({ navigation }) {
             onChangeText={setName}
             autoCapitalize="words"
           />
+
+          <Text style={styles.label}>Category</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+            {CATEGORIES.map((cat) => (
+              <TouchableOpacity
+                key={cat}
+                style={[styles.categoryChip, category === cat && styles.categoryChipActive]}
+                onPress={() => setCategory(cat)}
+              >
+                <Text style={[styles.categoryText, category === cat && styles.categoryTextActive]}>
+                  {cat}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
 
           <Text style={styles.label}>Bank Name</Text>
           <TextInput
@@ -194,6 +232,18 @@ export default function AddCardScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <Modal visible={isScannerVisible} animationType="slide" presentationStyle="fullScreen">
+        <CardScanner 
+          onClose={closeScanner}
+          onScanComplete={(data) => {
+            if (data.name) setName(data.name);
+            if (data.cardNumber) setCardNumber(data.cardNumber);
+            if (data.expiry) setExpiry(data.expiry);
+            closeScanner();
+          }}
+        />
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -209,7 +259,21 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
   header: {
-    marginBottom: 28,
+    marginBottom: 24,
+  },
+  scanButton: {
+    backgroundColor: "#29292e",
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#00b37e",
+  },
+  scanButtonText: {
+    color: "#00b37e",
+    fontSize: 16,
+    fontWeight: "600",
   },
   title: {
     fontSize: 28,
@@ -234,6 +298,31 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 16,
     marginBottom: 8,
+  },
+  categoryScroll: {
+    flexDirection: "row",
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  categoryChip: {
+    backgroundColor: "#1c1c21",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#29292e",
+    marginRight: 8,
+  },
+  categoryChipActive: {
+    backgroundColor: "rgba(0, 179, 126, 0.2)",
+    borderColor: "#00b37e",
+  },
+  categoryText: {
+    color: "#8d8d99",
+    fontWeight: "600",
+  },
+  categoryTextActive: {
+    color: "#00b37e",
   },
   label: {
     fontSize: 14,

@@ -104,4 +104,17 @@ export const cardService = {
     }
     return res.json();
   },
+  
+  toggleFavorite: async (id) => {
+    const res = await fetch(`${API_URL}/cards/${id}/favorite`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to toggle favorite");
+    }
+    return res.json();
+  },
 };

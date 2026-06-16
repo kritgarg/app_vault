@@ -16,4 +16,12 @@ export const useVaultStore = create((set) => ({
 
   // Action: Updates the PIN enrollment state (e.g. true if PIN is created/verified, false otherwise).
   setHasPin: (hasPin) => set({ hasPin }),
+
+  // Prevents auto-lock when a native file picker is open
+  isPickingFile: false,
+  setIsPickingFile: (isPickingFile) => set({ isPickingFile }),
+
+  // Prevents auto-lock when the camera scanner is open
+  isScanningCard: false,
+  setIsScanningCard: (isScanningCard) => set({ isScanningCard }),
 }));

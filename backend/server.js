@@ -1,17 +1,27 @@
 import express from "express"
+import cors from "cors"
 import { toNodeHandler } from "better-auth/node"
 import { auth } from "./utils/auth.js"
 import variables from "./utils/env.js"
 import { prisma } from "./utils/prisma.js"
 import cardRouter from "./routes/card.routes.js"
+import passwordRouter from "./routes/password.routes.js"
+import searchRouter from "./routes/search.routes.js"
+import documentRouter from "./routes/document.routes.js"
+import dashboardRouter from "./routes/dashboard.routes.js"
 
 const app = express()
 
+app.use(cors({ origin: true, credentials: true }))
 app.all("/api/auth/*any", toNodeHandler(auth))
 
 app.use(express.json())
 
 app.use("/cards", cardRouter)
+app.use("/passwords", passwordRouter)
+app.use("/search", searchRouter)
+app.use("/documents", documentRouter)
+app.use("/dashboard", dashboardRouter)
 
 app.get("/",(req,res)=>{
     res.send("server running congo my friends")

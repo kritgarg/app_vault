@@ -18,6 +18,10 @@ model User {
   sessions      Session[]
   accounts      Account[]
   cards         Card[]
+  passwords     Password[]
+  documents     Document[]
+  activities    Activity[]
+  notifications Notification[]
 
   @@map("user")
 }
@@ -83,9 +87,77 @@ model Card {
   network             String?
   cardType            String?
   notes               String?
+  category            String   @default("Other")
+  favorite            Boolean  @default(false)
+  expiryDate          DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
   @@index([userId])
   @@map("card")
+}
+
+model Password {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title             String
+  username          String?
+  encryptedPassword String
+  website           String?
+  encryptedNotes    String?
+  category          String   @default("Other")
+  favorite          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@map("password")
+}
+
+model Document {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  category  String   @default("Other")
+  fileUrl   String
+  fileName  String
+  fileType  String
+  fileSize  Int
+  favorite  Boolean  @default(false)
+  expiryDate DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("document")
+}
+
+model Activity {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entityId  String
+  type      String   // "CARD", "PASSWORD", "DOCUMENT"
+  action    String   // "CREATED", "UPDATED", "DELETED", "VIEWED"
+  metadata  String?  // JSON string for additional context
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("activity")
+}
+
+model Notification {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String   // "EXPIRY_WARNING", "SYSTEM"
+  message      String
+  read         Boolean  @default(false)
+  scheduledFor DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@map("notification")
 }

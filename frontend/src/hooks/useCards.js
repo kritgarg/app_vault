@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cardService } from "../services/card.service";
 
 // Hook to fetch and cache all cards owned by the active user
@@ -22,5 +22,16 @@ export function useCardDetails(id) {
 export function useRevealCard() {
   return useMutation({
     mutationFn: (id) => cardService.revealCard(id),
+  });
+}
+
+export function useToggleCardFavorite() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => cardService.toggleFavorite(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["cards"] });
+      queryClient.invalidateQueries({ queryKey: ["card", id] });
+    },
   });
 }

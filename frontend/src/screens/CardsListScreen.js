@@ -107,6 +107,9 @@ export default function CardsListScreen({ navigation }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Your Vault</Text>
+        <TouchableOpacity style={styles.searchButton} onPress={() => navigation.navigate("SearchScreen")}>
+          <Text style={styles.searchIcon}>🔍</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Premium Search Input */}
@@ -206,6 +209,19 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     color: "#ffffff",
+  },
+  searchButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#1c1c21",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#29292e",
+  },
+  searchIcon: {
+    fontSize: 20,
   },
   fab: {
     position: "absolute",

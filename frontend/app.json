@@ -15,21 +15,41 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSFaceIDUsageDescription": "FamilyVault needs Face ID to unlock your secure credentials vault."
-      }
+        "NSFaceIDUsageDescription": "FamilyVault needs Face ID to unlock your secure credentials vault.",
+        "NSCameraUsageDescription": "FamilyVault needs camera access to scan physical cards.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.kritgarg.frontend"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "package": "com.kritgarg.frontend"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "cc4ded94-eb3e-46dd-858d-600bb6ac9363"
+      }
+    }
   }
 }

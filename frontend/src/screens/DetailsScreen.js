@@ -9,33 +9,26 @@ import {
   FlatList,
   Platform,
 } from "react-native";
-import { useCards } from "../hooks/useCards";
+import { useDashboard } from "../hooks/useDashboard";
 
 export default function DetailsScreen({ navigation }) {
-  const { data: cards, isLoading, error } = useCards();
+  const { data: dashboard, isLoading: dashboardLoading } = useDashboard();
 
   const categories = [
     { id: "cards", title: "💳 Cards", description: "Credit and debit cards" },
     { id: "passwords", title: "🔑 Passwords", description: "Credentials for websites and apps" },
     { id: "documents", title: "📄 Documents", description: "Passports, IDs, and driver licenses" },
-    { id: "bank", title: "🏦 Bank Accounts", description: "Routing and account details" },
   ];
 
-  const totalCards = cards ? cards.length : 0;
+  const totalCards = dashboard?.counts?.cards || 0;
+  const totalPasswords = dashboard?.counts?.passwords || 0;
+  const totalDocuments = dashboard?.counts?.documents || 0;
 
-  // Calculate unique bank count and cards breakdown
-  const bankBreakdown = cards
-    ? cards.reduce((acc, card) => {
-        const bank = card.bankName || card.bank || "Other Banks";
-        acc[bank] = (acc[bank] || 0) + 1;
-        return acc;
-      }, {})
-    : {};
-
-  const uniqueBanksCount = Object.keys(bankBreakdown).length;
-
-  // Recently added cards (first 3, since array is sorted by createdAt desc)
-  const recentCards = cards ? cards.slice(0, 3) : [];
+  const recentCards = dashboard?.recents?.cards || [];
+  const recentPasswords = dashboard?.recents?.passwords || [];
+  const recentDocuments = dashboard?.recents?.documents || [];
+  const upcomingExpiries = dashboard?.expiries || [];
+  const recentActivity = dashboard?.activity || [];
 
   const renderRecentCardItem = ({ item }) => {
     // Select card background colors
@@ -70,36 +63,80 @@ export default function DetailsScreen({ navigation }) {
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       {/* Dashboard Welcome Header */}
       <View style={styles.header}>
-        <Text style={styles.logoText}>FamilyVault</Text>
-        <Text style={styles.subtitle}>🛡️ Secure Zero-Knowledge Vault</Text>
+        <View>
+          <Text style={styles.logoText}>FamilyVault</Text>
+          <Text style={styles.subtitle}>🛡️ Secure Zero-Knowledge Vault</Text>
+        </View>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate("FavoritesScreen")}>
+            <Text style={styles.iconButtonText}>⭐</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate("SearchScreen")}>
+            <Text style={styles.iconButtonText}>🔍</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Stats Cards Grid */}
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Total Cards</Text>
-          {isLoading ? (
+          {dashboardLoading ? (
             <ActivityIndicator size="small" color="#00b37e" style={styles.statLoader} />
           ) : (
             <Text style={styles.statValue}>{totalCards}</Text>
           )}
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Active Banks</Text>
-          {isLoading ? (
+          <Text style={styles.statLabel}>Total Passwords</Text>
+          {dashboardLoading ? (
             <ActivityIndicator size="small" color="#00b37e" style={styles.statLoader} />
           ) : (
-            <Text style={styles.statValue}>{uniqueBanksCount}</Text>
+            <Text style={styles.statValue}>{totalPasswords}</Text>
+          )}
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Total Documents</Text>
+          {dashboardLoading ? (
+            <ActivityIndicator size="small" color="#00b37e" style={styles.statLoader} />
+          ) : (
+            <Text style={styles.statValue}>{totalDocuments}</Text>
           )}
         </View>
       </View>
 
+      {/* Upcoming Expiries Widget */}
+      {!dashboardLoading && upcomingExpiries.length > 0 && (
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Upcoming Expiries</Text>
+          <View style={styles.categoriesList}>
+            {upcomingExpiries.slice(0, 3).map((item) => (
+              <TouchableOpacity
+                key={`expiry-${item.id}`}
+                style={styles.expiryCard}
+                onPress={() => {
+                  if (item.type === "CARD") navigation.navigate("CardDetails", { id: item.id });
+                  if (item.type === "DOCUMENT") navigation.navigate("DocumentDetails", { id: item.id });
+                }}
+              >
+                <Text style={styles.itemIcon}>{item.type === "CARD" ? "💳" : "📄"}</Text>
+                <View style={styles.itemInfo}>
+                  <Text style={styles.itemTitle}>{item.name || item.title}</Text>
+                  <Text style={styles.expiryDateText}>
+                    Expires: {new Date(item.expiryDate).toLocaleDateString()}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
 
-      {/* Recently Added Section */}
-      {!isLoading && recentCards.length > 0 && (
+      {/* Recently Added Cards */}
+      {!dashboardLoading && recentCards.length > 0 && (
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Recently Added</Text>
+            <Text style={styles.sectionTitle}>Recently Added Cards</Text>
             <TouchableOpacity onPress={() => navigation.navigate("CardsList")}>
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
@@ -116,6 +153,24 @@ export default function DetailsScreen({ navigation }) {
       )}
 
 
+      {/* Recent Activity Widget */}
+      {!dashboardLoading && recentActivity.length > 0 && (
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <View style={styles.categoriesList}>
+            {recentActivity.slice(0, 3).map((activity) => (
+              <View key={`act-${activity.id}`} style={styles.activityCard}>
+                <Text style={styles.activityDot}>•</Text>
+                <View style={styles.itemInfo}>
+                  <Text style={styles.activityAction}>{activity.action} {activity.entityType}</Text>
+                  <Text style={styles.activityTime}>{new Date(activity.createdAt).toLocaleString()}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
       {/* Other Vault Categories Section */}
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Other Categories</Text>
@@ -127,6 +182,10 @@ export default function DetailsScreen({ navigation }) {
               onPress={() => {
                 if (category.id === "cards") {
                   navigation.navigate("CardsList");
+                } else if (category.id === "passwords") {
+                  navigation.navigate("PasswordsList");
+                } else if (category.id === "documents") {
+                  navigation.navigate("DocumentsList");
                 } else {
                   console.log(`Selected category: ${category.id}`);
                 }
@@ -155,7 +214,27 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 24,
+  },
+  headerButtons: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#1c1c21",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#29292e",
+  },
+  iconButtonText: {
+    fontSize: 20,
   },
   logoText: {
     fontSize: 30,
@@ -171,11 +250,13 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 16,
     marginBottom: 16,
   },
   statCard: {
-    flex: 1,
+    flexBasis: "47%",
+    flexGrow: 1,
     backgroundColor: "#1c1c21",
     borderRadius: 12,
     borderWidth: 1,
@@ -340,5 +421,53 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#8d8d99",
     marginTop: 4,
+  },
+  expiryCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1c1c21",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(247, 90, 104, 0.4)",
+  },
+  itemIcon: {
+    fontSize: 24,
+    marginRight: 16,
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemTitle: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  expiryDateText: {
+    color: "#f75a68",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  activityCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  activityDot: {
+    color: "#00b37e",
+    fontSize: 24,
+    marginRight: 12,
+  },
+  activityAction: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  activityTime: {
+    color: "#8d8d99",
+    fontSize: 12,
+    marginTop: 2,
   },
 });

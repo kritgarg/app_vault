@@ -16,7 +16,7 @@ import * as SecureStore from "expo-secure-store";
 import * as Crypto from "expo-crypto";
 import * as Clipboard from "expo-clipboard";
 
-import { useCardDetails, useRevealCard } from "../hooks/useCards";
+import { useCardDetails, useRevealCard, useToggleCardFavorite } from "../hooks/useCards";
 import { useDeleteCard } from "../hooks/useDeleteCard";
 import { useBiometrics } from "../hooks/useBiometrics";
 
@@ -30,6 +30,7 @@ export default function CardDetailsScreen({ route, navigation }) {
   const { data: card, isLoading, error } = useCardDetails(id);
   const deleteMutation = useDeleteCard();
   const revealMutation = useRevealCard();
+  const toggleFavMutation = useToggleCardFavorite();
   const { isCompatible, isEnrolled, authenticate } = useBiometrics();
 
   // Secure reveal states
@@ -85,6 +86,17 @@ export default function CardDetailsScreen({ route, navigation }) {
   const triggerToast = (msg) => {
     setToastMsg(msg);
     setToastVisible(true);
+  };
+
+  const handleToggleFavorite = () => {
+    toggleFavMutation.mutate(id, {
+      onSuccess: () => {
+        triggerToast(card.favorite ? "Removed from Favorites" : "Added to Favorites");
+      },
+      onError: () => {
+        Alert.alert("Error", "Failed to update favorite status.");
+      }
+    });
   };
 
   const handleDelete = () => {
@@ -249,9 +261,18 @@ export default function CardDetailsScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Card details</Text>
-          <Text style={styles.subtitle}>🔒 Decryption protected by vault security</Text>
+        <View style={styles.headerRow}>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.title}>Card details</Text>
+            <Text style={styles.subtitle}>🔒 Decryption protected by vault security</Text>
+          </View>
+          <TouchableOpacity 
+            onPress={handleToggleFavorite}
+            disabled={toggleFavMutation.isPending}
+            style={styles.favoriteButton}
+          >
+            <Text style={styles.favoriteIcon}>{card.favorite ? "⭐" : "☆"}</Text>
+          </TouchableOpacity>
         </View>
 
         {/* 3D Flip Card Rendering */}
@@ -442,8 +463,14 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 40,
   },
-  header: {
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 20,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   title: {
     fontSize: 28,
@@ -455,6 +482,14 @@ const styles = StyleSheet.create({
     color: "#8d8d99",
     marginTop: 4,
     fontWeight: "600",
+  },
+  favoriteButton: {
+    padding: 8,
+    marginLeft: 12,
+  },
+  favoriteIcon: {
+    fontSize: 28,
+    color: "#ffffff",
   },
   flipCardSection: {
     alignItems: "center",

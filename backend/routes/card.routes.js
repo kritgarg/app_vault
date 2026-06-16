@@ -3,6 +3,7 @@ import { prisma } from "../utils/prisma.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { encrypt, decrypt } from "../utils/encryption.js";
 import { lookupBIN } from "../services/bin.service.js";
+import { activityService } from "../services/activity.service.js";
 
 const router = express.Router();
 
@@ -39,6 +40,14 @@ router.post("/", async (req, res) => {
     const encryptedCardNumber = encrypt(cardNumber);
     const encryptedCvv = encrypt(cvv);
 
+    let expiryDate = null;
+    if (expiry && expiry.includes("/")) {
+      const [month, year] = expiry.split("/");
+      const fullYear = parseInt(year) > 50 ? `19${year}` : `20${year}`;
+      // Set to the last day of the expiry month
+      expiryDate = new Date(parseInt(fullYear), parseInt(month), 0);
+    }
+
     const card = await prisma.card.create({
       data: {
         userId: req.user.id,
@@ -46,12 +55,22 @@ router.post("/", async (req, res) => {
         bank,
         encryptedCardNumber,
         expiry,
+        expiryDate,
         encryptedCvv,
         bankName: bankName || null,
         network: network || null,
         cardType: cardType || null,
         notes: notes || null,
+        category: req.body.category || "Personal",
       },
+    });
+
+    await activityService.logActivity({
+      userId: req.user.id,
+      entityId: card.id,
+      type: "CARD",
+      action: "CREATED",
+      metadata: { name: card.name, bank: card.bank }
     });
 
     // Return masked representation for client-side display safety
@@ -144,6 +163,26 @@ router.get("/:id/reveal", async (req, res) => {
   }
 });
 
+// Toggle Favorite: PATCH /cards/:id/favorite
+router.patch("/:id/favorite", async (req, res) => {
+  try {
+    const card = await prisma.card.findUnique({ where: { id: req.params.id } });
+    if (!card || card.userId !== req.user.id) {
+      return res.status(404).json({ error: "Card not found" });
+    }
+    
+    const updated = await prisma.card.update({
+      where: { id: req.params.id },
+      data: { favorite: !card.favorite },
+    });
+    
+    return res.json(updated);
+  } catch (error) {
+    console.error("Toggle card favorite error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // 5. Get Specific Card details (Masked): GET /cards/:id
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
@@ -201,6 +240,14 @@ router.delete("/:id", async (req, res) => {
 
     await prisma.card.delete({
       where: { id },
+    });
+
+    await activityService.logActivity({
+      userId: req.user.id,
+      entityId: id,
+      type: "CARD",
+      action: "DELETED",
+      metadata: { name: card.name }
     });
 
     return res.json({ message: "Card deleted successfully" });
